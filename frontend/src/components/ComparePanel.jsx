@@ -1,69 +1,64 @@
 import { useState } from 'react'
-import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  ResponsiveContainer, Legend, Tooltip
-} from 'recharts'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 
 const ROI_LABELS = {
-  visual_cortex:  'Görsel Korteks',
-  ventral_visual: 'Ventral Görsel',
-  dorsal_visual:  'Dorsal Görsel',
+  visual_cortex:  'Görsel',
+  ventral_visual: 'Ventral',
+  dorsal_visual:  'Dorsal',
   prefrontal:     'Prefrontal',
   auditory:       'İşitsel',
   language:       'Dil',
 }
 
-const COLORS = ['#6c63ff', '#ff6584', '#43e97b', '#f7971e']
+const COLORS = ['#1a1916', '#c0392b', '#2d7a4f', '#d4780a']
+
+function scoreColor(v) {
+  if (!v && v !== 0) return 'var(--ink3)'
+  if (v >= 60) return '#2d7a4f'
+  if (v >= 35) return '#d4780a'
+  return '#c0392b'
+}
 
 export default function ComparePanel({ analyses }) {
   const [selected, setSelected] = useState([])
 
   const toggle = (a) => {
-    if (selected.find(s => s.id === a.id)) {
+    if (selected.find(s => s.id === a.id))
       setSelected(selected.filter(s => s.id !== a.id))
-    } else if (selected.length < 4) {
+    else if (selected.length < 4)
       setSelected([...selected, a])
-    }
   }
 
   const chartData = Object.keys(ROI_LABELS).map(key => {
     const row = { subject: ROI_LABELS[key] }
-    selected.forEach(a => {
-      row[a.creative_name] = a.roi_scores?.[key] ?? 0
-    })
+    selected.forEach(a => { row[a.creative_name] = a.roi_scores?.[key] ?? 0 })
     return row
   })
 
-  if (analyses.length === 0) {
-    return <div style={styles.empty}>Karşılaştırmak için önce analiz yapmalısın.</div>
-  }
+  if (analyses.length === 0)
+    return <div style={s.empty}>Karşılaştırmak için önce en az 2 analiz yapmalısın.</div>
 
   return (
-    <div style={styles.wrap}>
-      <div style={styles.left}>
-        <div style={styles.sectionTitle}>Karşılaştırılacakları seç (max 4)</div>
-        <div style={styles.list}>
+    <div style={s.wrap}>
+      <div style={s.left}>
+        <div style={s.sectionTitle}>Seç (max 4)</div>
+        <div style={s.list}>
           {analyses.map(a => {
-            const isSelected = !!selected.find(s => s.id === a.id)
-            const idx = selected.findIndex(s => s.id === a.id)
+            const idx = selected.findIndex(x => x.id === a.id)
+            const active = idx >= 0
             return (
-              <div
-                key={a.id}
-                style={{
-                  ...styles.item,
-                  ...(isSelected ? { borderColor: COLORS[idx], background: 'var(--surface2)' } : {})
-                }}
+              <div key={a.id}
+                style={{ ...s.item, ...(active ? { borderColor: COLORS[idx], background: 'var(--bg)' } : {}) }}
                 onClick={() => toggle(a)}
               >
-                {isSelected && (
-                  <span style={{ ...styles.colorDot, background: COLORS[idx] }} />
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={styles.itemName}>{a.creative_name}</div>
-                  <div style={styles.itemClient}>{a.client_name || '—'}</div>
+                {active && <span style={{ ...s.colorDot, background: COLORS[idx] }} />}
+                {!active && <span style={s.emptyDot} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={s.itemName}>{a.creative_name}</div>
+                  <div style={s.itemClient}>{a.client_name || '—'}</div>
                 </div>
-                <div style={styles.itemScore}>
-                  {a.roi_scores?.attention_score ?? '—'}
+                <div style={{ ...s.itemScore, color: scoreColor(a.roi_scores?.attention_score) }}>
+                  {a.roi_scores?.attention_score?.toFixed(1) ?? '—'}
                 </div>
               </div>
             )
@@ -71,127 +66,95 @@ export default function ComparePanel({ analyses }) {
         </div>
       </div>
 
-      <div style={styles.right}>
-        {selected.length < 2 ? (
-          <div style={styles.empty}>En az 2 kreatif seç</div>
-        ) : (
-          <>
-            <div style={styles.sectionTitle}>Beyin Aktivasyon Karşılaştırması</div>
-            <ResponsiveContainer width="100%" height={380}>
-              <RadarChart data={chartData}>
-                <PolarGrid stroke="#2a2a38" />
-                <PolarAngleAxis
-                  dataKey="subject"
-                  tick={{ fill: '#6b6b85', fontSize: 12, fontFamily: 'DM Sans' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: '#13131a', border: '1px solid #2a2a38',
-                    borderRadius: 8, fontSize: 12
-                  }}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 12, fontFamily: 'DM Sans', paddingTop: 16 }}
-                />
-                {selected.map((a, i) => (
-                  <Radar
-                    key={a.id}
-                    name={a.creative_name}
-                    dataKey={a.creative_name}
-                    stroke={COLORS[i]}
-                    fill={COLORS[i]}
-                    fillOpacity={0.12}
-                    strokeWidth={2}
+      <div style={s.right}>
+        {selected.length < 2
+          ? <div style={s.empty}>En az 2 kreatif seç</div>
+          : (
+            <>
+              <div style={s.sectionTitle}>Aktivasyon karşılaştırması</div>
+              <ResponsiveContainer width="100%" height={320}>
+                <RadarChart data={chartData}>
+                  <PolarGrid stroke="#e0ddd6" />
+                  <PolarAngleAxis dataKey="subject"
+                    tick={{ fill: '#6b6860', fontSize: 12, fontFamily: 'Geist, sans-serif' }} />
+                  <Tooltip
+                    contentStyle={{ background: '#fff', border: '1px solid #e0ddd6', borderRadius: 6, fontSize: 12 }}
                   />
-                ))}
-              </RadarChart>
-            </ResponsiveContainer>
-
-            {/* Sayısal karşılaştırma tablosu */}
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Bölge</th>
+                  <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'Geist, sans-serif', paddingTop: 12 }} />
                   {selected.map((a, i) => (
-                    <th key={a.id} style={{ ...styles.th, color: COLORS[i] }}>
-                      {a.creative_name.length > 20
-                        ? a.creative_name.slice(0, 20) + '…'
-                        : a.creative_name}
-                    </th>
+                    <Radar key={a.id} name={a.creative_name} dataKey={a.creative_name}
+                      stroke={COLORS[i]} fill={COLORS[i]} fillOpacity={0.07} strokeWidth={1.5} />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(ROI_LABELS).map(([key, label]) => (
-                  <tr key={key} style={styles.tr}>
-                    <td style={styles.td}>{label}</td>
+                </RadarChart>
+              </ResponsiveContainer>
+
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    <th style={s.th}>Bölge</th>
+                    {selected.map((a, i) => (
+                      <th key={a.id} style={{ ...s.th, color: COLORS[i] }}>
+                        {a.creative_name.length > 18 ? a.creative_name.slice(0,18)+'…' : a.creative_name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(ROI_LABELS).map(([key, label]) => (
+                    <tr key={key} style={s.tr}>
+                      <td style={s.td}>{label}</td>
+                      {selected.map(a => {
+                        const val = a.roi_scores?.[key] ?? 0
+                        const max = Math.max(...selected.map(x => x.roi_scores?.[key] ?? 0))
+                        return (
+                          <td key={a.id} style={{ ...s.td, fontWeight: val === max ? 600 : 400, color: val === max ? 'var(--ink)' : 'var(--ink3)' }}>
+                            {val.toFixed(1)}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                  <tr style={{ ...s.tr, borderTop: '2px solid var(--border)' }}>
+                    <td style={{ ...s.td, fontWeight: 600 }}>Dikkat skoru</td>
                     {selected.map(a => {
-                      const val = a.roi_scores?.[key] ?? 0
-                      const max = Math.max(...selected.map(s => s.roi_scores?.[key] ?? 0))
+                      const val = a.roi_scores?.attention_score ?? 0
+                      const max = Math.max(...selected.map(x => x.roi_scores?.attention_score ?? 0))
                       return (
-                        <td key={a.id} style={{
-                          ...styles.td,
-                          fontWeight: val === max ? 600 : 400,
-                          color: val === max ? 'var(--text)' : 'var(--muted)',
-                        }}>
-                          {val}
+                        <td key={a.id} style={{ ...s.td, fontWeight: 700, color: scoreColor(val), fontFamily: 'var(--head)', fontStyle: 'italic', fontSize: 16 }}>
+                          {val.toFixed(1)}
                         </td>
                       )
                     })}
                   </tr>
-                ))}
-                <tr style={{ ...styles.tr, borderTop: '1px solid var(--border)' }}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>Dikkat Skoru</td>
-                  {selected.map(a => {
-                    const val = a.roi_scores?.attention_score ?? 0
-                    const max = Math.max(...selected.map(s => s.roi_scores?.attention_score ?? 0))
-                    return (
-                      <td key={a.id} style={{
-                        ...styles.td, fontWeight: 700,
-                        color: val === max ? 'var(--accent)' : 'var(--muted)',
-                      }}>
-                        {val}
-                      </td>
-                    )
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </>
-        )}
+                </tbody>
+              </table>
+            </>
+          )
+        }
       </div>
     </div>
   )
 }
 
-const styles = {
-  wrap: { display: 'grid', gridTemplateColumns: '280px 1fr', gap: 32, alignItems: 'start' },
-  left: { display: 'flex', flexDirection: 'column', gap: 12 },
+const s = {
+  wrap: { display: 'grid', gridTemplateColumns: '260px 1fr', gap: 40, alignItems: 'start' },
+  left: { display: 'flex', flexDirection: 'column', gap: 10 },
   right: { display: 'flex', flexDirection: 'column', gap: 20 },
-  sectionTitle: { fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 14, color: 'var(--muted)', marginBottom: 4 },
-  empty: { textAlign: 'center', color: 'var(--muted)', padding: 60 },
-
-  list: { display: 'flex', flexDirection: 'column', gap: 8 },
+  sectionTitle: { fontSize: 11, fontWeight: 500, color: 'var(--ink3)', letterSpacing: '.05em', textTransform: 'uppercase' },
+  empty: { textAlign: 'center', color: 'var(--ink3)', padding: 60 },
+  list: { display: 'flex', flexDirection: 'column', gap: 6 },
   item: {
     display: 'flex', alignItems: 'center', gap: 10,
-    background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
-    transition: 'border-color .15s',
+    background: '#fff', border: '1px solid var(--border)',
+    borderRadius: 'var(--r)', padding: '10px 12px', cursor: 'pointer', transition: 'all .12s',
   },
-  colorDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
-  itemName: { fontSize: 13, fontWeight: 500, marginBottom: 2 },
-  itemClient: { fontSize: 11, color: 'var(--muted)' },
-  itemScore: { fontSize: 14, fontWeight: 700, color: 'var(--accent)' },
-
-  table: {
-    width: '100%', borderCollapse: 'collapse',
-    background: 'var(--surface)', borderRadius: 10, overflow: 'hidden',
-  },
-  th: {
-    padding: '10px 16px', textAlign: 'left', fontSize: 12,
-    color: 'var(--muted)', fontWeight: 600, background: 'var(--surface2)',
-    borderBottom: '1px solid var(--border)',
-  },
+  colorDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+  emptyDot: { width: 8, height: 8, borderRadius: '50%', border: '1px solid var(--border2)', flexShrink: 0 },
+  itemName: { fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  itemClient: { fontSize: 11, color: 'var(--ink3)' },
+  itemScore: { fontSize: 14, fontWeight: 600, marginLeft: 8, fontFamily: 'var(--head)', fontStyle: 'italic' },
+  table: { width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' },
+  th: { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', letterSpacing: '.03em', textTransform: 'uppercase' },
   tr: { borderBottom: '1px solid var(--border)' },
-  td: { padding: '10px 16px', fontSize: 13 },
+  td: { padding: '9px 14px', fontSize: 13 },
 }
