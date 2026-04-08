@@ -1,7 +1,0 @@
-modal>=0.73.0
-fastapi
-python-multipart
-supabase
-numpy
-Pillow
-ffmpeg-python
