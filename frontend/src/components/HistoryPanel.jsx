@@ -1,16 +1,15 @@
 import { useState } from 'react'
+import ResultCard from './ResultCard.jsx'
 
-const ROI_LABELS = {
-  visual_cortex:  'Görsel',
-  ventral_visual: 'Ventral',
-  dorsal_visual:  'Dorsal',
-  prefrontal:     'Prefrontal',
-  auditory:       'İşitsel',
-  language:       'Dil',
+function scoreColor(v) {
+  if (!v && v !== 0) return 'var(--ink3)'
+  if (v >= 60) return '#2d7a4f'
+  if (v >= 35) return '#d4780a'
+  return '#c0392b'
 }
 
 export default function HistoryPanel({ analyses, loading, onRefresh }) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch]   = useState('')
   const [selected, setSelected] = useState(null)
 
   const filtered = analyses.filter(a =>
@@ -18,127 +17,77 @@ export default function HistoryPanel({ analyses, loading, onRefresh }) {
     a.client_name?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const fmt = (iso) => {
-    if (!iso) return '—'
-    return new Date(iso).toLocaleDateString('tr-TR', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    })
-  }
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('tr-TR', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  }) : '—'
 
-  if (loading) return (
-    <div style={styles.empty}>Yükleniyor...</div>
-  )
+  if (loading) return <div style={s.empty}>Yükleniyor...</div>
 
   return (
-    <div style={styles.wrap}>
-      <div style={styles.toolbar}>
-        <input style={styles.search} placeholder="Kreatif veya müşteri ara..."
+    <div style={s.wrap}>
+      <div style={s.toolbar}>
+        <input style={s.search} placeholder="Kreatif veya müşteri ara..."
           value={search} onChange={e => setSearch(e.target.value)} />
-        <button style={styles.refreshBtn} onClick={onRefresh}>↻ Yenile</button>
+        <button style={s.refreshBtn} onClick={onRefresh}>↻</button>
       </div>
 
-      {filtered.length === 0 ? (
-        <div style={styles.empty}>Henüz analiz yok.</div>
-      ) : (
-        <div style={styles.grid}>
-          {filtered.map(a => (
-            <div
-              key={a.id}
-              style={{ ...styles.card, ...(selected?.id === a.id ? styles.cardSelected : {}) }}
-              onClick={() => setSelected(selected?.id === a.id ? null : a)}
-            >
-              <div style={styles.cardTop}>
-                <div>
-                  <div style={styles.cardName}>{a.creative_name}</div>
-                  <div style={styles.cardClient}>{a.client_name || 'Müşteri belirtilmemiş'}</div>
+      {filtered.length === 0
+        ? <div style={s.empty}>Henüz analiz yok.</div>
+        : (
+          <div style={s.layout}>
+            <div style={s.list}>
+              {filtered.map(a => (
+                <div key={a.id}
+                  style={{ ...s.row, ...(selected?.id === a.id ? s.rowActive : {}) }}
+                  onClick={() => setSelected(selected?.id === a.id ? null : a)}
+                >
+                  <div style={s.rowMain}>
+                    <div style={s.rowName}>{a.creative_name}</div>
+                    <div style={s.rowMeta}>{a.client_name || '—'} · {fmt(a.created_at)}</div>
+                  </div>
+                  <div style={{ ...s.rowScore, color: scoreColor(a.roi_scores?.attention_score) }}>
+                    {a.roi_scores?.attention_score?.toFixed(1) ?? '—'}
+                  </div>
                 </div>
-                <div style={styles.attBadge}>
-                  {a.roi_scores?.attention_score ?? '—'}
-                </div>
-              </div>
-
-              <div style={styles.miniScores}>
-                {Object.entries(ROI_LABELS).map(([key, label]) => (
-                  <div key={key} style={styles.miniScore}>
-                    <div style={styles.miniLabel}>{label}</div>
-                    <div style={styles.miniBar}>
-                      <div style={{
-                        ...styles.miniFill,
-                        width: `${Math.min(100, a.roi_scores?.[key] ?? 0)}%`
-                      }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {selected?.id === a.id && (
-                <div style={styles.cardDetail}>
-                  <div style={styles.detailRow}>
-                    <span style={styles.detailKey}>Tarih</span>
-                    <span>{fmt(a.created_at)}</span>
-                  </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.detailKey}>Format</span>
-                    <span>{a.file_type || '—'}</span>
-                  </div>
-                  <div style={styles.detailRow}>
-                    <span style={styles.detailKey}>İşlem süresi</span>
-                    <span>{a.processing_seconds}s</span>
-                  </div>
-                  {a.notes && (
-                    <div style={styles.detailRow}>
-                      <span style={styles.detailKey}>Not</span>
-                      <span style={{ color: 'var(--muted)' }}>{a.notes}</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+
+            {selected && (
+              <div style={s.detail}>
+                <ResultCard result={selected} creative={selected.creative_name} client={selected.client_name} />
+              </div>
+            )}
+          </div>
+        )
+      }
     </div>
   )
 }
 
-const styles = {
+const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 20 },
-  toolbar: { display: 'flex', gap: 12 },
+  toolbar: { display: 'flex', gap: 10 },
   search: {
-    flex: 1, background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '10px 14px', color: 'var(--text)', fontSize: 14, outline: 'none',
+    flex: 1, background: '#fff', border: '1px solid var(--border)',
+    borderRadius: 'var(--r)', padding: '9px 14px', color: 'var(--ink)', fontSize: 13, outline: 'none',
   },
   refreshBtn: {
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '10px 18px', color: 'var(--text)', fontSize: 14,
+    background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)',
+    padding: '9px 14px', color: 'var(--ink2)', fontSize: 15,
   },
-  empty: { textAlign: 'center', color: 'var(--muted)', padding: 60 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 },
-  card: {
-    background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 12, padding: 18, cursor: 'pointer',
-    transition: 'border-color .15s', display: 'flex', flexDirection: 'column', gap: 14,
+  empty: { textAlign: 'center', color: 'var(--ink3)', padding: 60 },
+  layout: { display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, alignItems: 'start' },
+  list: { display: 'flex', flexDirection: 'column', gap: 2 },
+  row: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 14px', borderRadius: 'var(--r)', cursor: 'pointer',
+    border: '1px solid transparent', transition: 'all .12s', background: '#fff',
+    borderColor: 'var(--border)',
   },
-  cardSelected: { borderColor: 'var(--accent)' },
-  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardName: { fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 14, marginBottom: 2 },
-  cardClient: { fontSize: 12, color: 'var(--muted)' },
-  attBadge: {
-    background: 'var(--accent)', color: '#fff', borderRadius: 20,
-    fontSize: 13, fontWeight: 700, padding: '3px 12px', flexShrink: 0,
-  },
-  miniScores: { display: 'flex', flexDirection: 'column', gap: 6 },
-  miniScore: { display: 'grid', gridTemplateColumns: '70px 1fr', gap: 8, alignItems: 'center' },
-  miniLabel: { fontSize: 11, color: 'var(--muted)' },
-  miniBar: { height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' },
-  miniFill: { height: '100%', background: 'var(--accent)', borderRadius: 2 },
-  cardDetail: {
-    borderTop: '1px solid var(--border)', paddingTop: 12,
-    display: 'flex', flexDirection: 'column', gap: 6,
-  },
-  detailRow: {
-    display: 'flex', justifyContent: 'space-between', fontSize: 12,
-  },
-  detailKey: { color: 'var(--muted)' },
+  rowActive: { borderColor: 'var(--ink)', background: 'var(--bg)' },
+  rowMain: { flex: 1, minWidth: 0 },
+  rowName: { fontSize: 13, fontWeight: 500, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  rowMeta: { fontSize: 11, color: 'var(--ink3)' },
+  rowScore: { fontSize: 16, fontWeight: 600, marginLeft: 12, fontFamily: 'var(--head)', fontStyle: 'italic' },
+  detail: {},
 }
