@@ -1,70 +1,40 @@
 import { useState, useRef, useEffect } from 'react'
+import ResultCard from './ResultCard.jsx'
 
 const MODAL_API = import.meta.env.VITE_MODAL_API_URL
 
-const ROI_LABELS = {
-  visual_cortex:   'Görsel Korteks',
-  ventral_visual:  'Ventral Görsel',
-  dorsal_visual:   'Dorsal Görsel',
-  prefrontal:      'Prefrontal',
-  auditory:        'İşitsel',
-  language:        'Dil',
-}
+export default function UploadPanel({ onComplete, analyses }) {
+  const [file, setFile]         = useState(null)
+  const [preview, setPreview]   = useState(null)
+  const [name, setName]         = useState('')
+  const [client, setClient]     = useState('')
+  const [notes, setNotes]       = useState('')
+  const [status, setStatus]     = useState('idle')
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState('')
+  const [drag, setDrag]         = useState(false)
+  const [elapsed, setElapsed]   = useState(0)
+  const [jobId, setJobId]       = useState(null)
+  const inputRef = useRef()
+  const pollRef  = useRef()
+  const timerRef = useRef()
 
-const ROI_COLORS = {
-  visual_cortex:  '#6c63ff',
-  ventral_visual: '#ff6584',
-  dorsal_visual:  '#43e97b',
-  prefrontal:     '#f7971e',
-  auditory:       '#4facfe',
-  language:       '#a18cd1',
-}
-
-export default function UploadPanel({ onComplete }) {
-  const [file, setFile]               = useState(null)
-  const [preview, setPreview]         = useState(null)
-  const [creativeName, setCreativeName] = useState('')
-  const [clientName, setClientName]   = useState('')
-  const [notes, setNotes]             = useState('')
-  const [status, setStatus]           = useState('idle')
-  const [result, setResult]           = useState(null)
-  const [error, setError]             = useState('')
-  const [drag, setDrag]               = useState(false)
-  const [elapsed, setElapsed]         = useState(0)
-  const [jobId, setJobId]             = useState(null)
-  const inputRef  = useRef()
-  const pollRef   = useRef()
-  const timerRef  = useRef()
-
-  // Polling
   useEffect(() => {
     if (!jobId) return
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${MODAL_API}/analyze/status/${jobId}`)
+        const res  = await fetch(`${MODAL_API}/analyze/status/${jobId}`)
         const data = await res.json()
         if (data.status === 'success') {
-          clearInterval(pollRef.current)
-          clearInterval(timerRef.current)
-          setResult(data)
-          setStatus('done')
-          onComplete(data)
+          clearInterval(pollRef.current); clearInterval(timerRef.current)
+          setResult(data); setStatus('done'); onComplete()
         } else if (data.status === 'failed') {
-          clearInterval(pollRef.current)
-          clearInterval(timerRef.current)
-          setError(data.error_message || 'Analiz başarısız')
-          setStatus('error')
+          clearInterval(pollRef.current); clearInterval(timerRef.current)
+          setError(data.error_message || 'Analiz başarısız'); setStatus('error')
         }
-        // pending / running → devam et
-      } catch (e) {
-        // ağ hatası → polling devam etsin
-      }
-    }, 8000) // 8 saniyede bir kontrol
-
-    return () => {
-      clearInterval(pollRef.current)
-      clearInterval(timerRef.current)
-    }
+      } catch (_) {}
+    }, 8000)
+    return () => { clearInterval(pollRef.current); clearInterval(timerRef.current) }
   }, [jobId])
 
   const handleFile = (f) => {
@@ -75,53 +45,42 @@ export default function UploadPanel({ onComplete }) {
     else setPreview(null)
   }
 
-  const handleDrop = (e) => {
-    e.preventDefault(); setDrag(false)
-    handleFile(e.dataTransfer.files[0])
-  }
-
   const analyze = async () => {
-    if (!file || !creativeName) return
+    if (!file || !name) return
     setStatus('uploading'); setError(''); setElapsed(0)
-
     const fd = new FormData()
     fd.append('file', file)
-    fd.append('creative_name', creativeName)
-    fd.append('client_name', clientName)
+    fd.append('creative_name', name)
+    fd.append('client_name', client)
     fd.append('notes', notes)
-
     try {
       const res = await fetch(`${MODAL_API}/analyze/start`, { method: 'POST', body: fd })
-      if (!res.ok) throw new Error(`API hatası: ${res.status}`)
+      if (!res.ok) throw new Error(`Sunucu hatası: ${res.status}`)
       const data = await res.json()
-      setJobId(data.job_id)
-      setStatus('analyzing')
-
-      // Elapsed sayacı
+      setJobId(data.job_id); setStatus('analyzing')
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
-    } catch (e) {
-      setError(e.message); setStatus('error')
-    }
+    } catch (e) { setError(e.message); setStatus('error') }
   }
 
   const reset = () => {
     clearInterval(pollRef.current); clearInterval(timerRef.current)
     setFile(null); setPreview(null); setResult(null)
-    setStatus('idle'); setError(''); setCreativeName('')
-    setClientName(''); setNotes(''); setJobId(null); setElapsed(0)
+    setStatus('idle'); setError(''); setName(''); setClient('')
+    setNotes(''); setJobId(null); setElapsed(0)
   }
 
-  const fmtElapsed = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`
+  const fmtTime = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`
+  const busy = ['uploading','analyzing'].includes(status)
 
   return (
-    <div style={styles.wrap}>
-      <div style={styles.left}>
+    <div style={s.wrap}>
+      <div style={s.left}>
         <div
-          style={{ ...styles.dropzone, ...(drag ? styles.dropzoneActive : {}) }}
+          style={{ ...s.dropzone, ...(drag ? s.dropActive : {}), ...(file ? s.dropFilled : {}) }}
           onDragOver={e => { e.preventDefault(); setDrag(true) }}
           onDragLeave={() => setDrag(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current.click()}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]) }}
+          onClick={() => !file && inputRef.current.click()}
         >
           <input ref={inputRef} type="file"
             accept="image/*,video/mp4,video/mov,audio/mp3,audio/wav"
@@ -129,172 +88,166 @@ export default function UploadPanel({ onComplete }) {
             onChange={e => handleFile(e.target.files[0])}
           />
           {preview ? (
-            file?.type.startsWith('video') ? (
-              <video src={preview} style={styles.previewMedia} controls />
-            ) : (
-              <img src={preview} alt="preview" style={styles.previewMedia} />
-            )
+            file?.type.startsWith('video')
+              ? <video src={preview} style={s.media} controls onClick={e => e.stopPropagation()} />
+              : <img src={preview} style={s.media} alt="" />
           ) : (
-            <div style={styles.dropPlaceholder}>
-              <div style={styles.dropIcon}>↑</div>
-              <div style={styles.dropText}>Görsel, video veya ses sürükle</div>
-              <div style={styles.dropSub}>JPG · PNG · MP4 · MOV · MP3 · WAV</div>
+            <div style={s.dropInner}>
+              <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="var(--ink3)" strokeWidth="1.2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <div style={s.dropText}>Sürükle veya tıkla</div>
+              <div style={s.dropSub}>JPG · PNG · MP4 · MOV · MP3 · WAV</div>
             </div>
           )}
         </div>
+
         {file && (
-          <div style={styles.fileName}>
-            <span style={styles.fileNameDot} />
-            {file.name}
-            <button style={styles.clearBtn} onClick={reset}>✕</button>
+          <div style={s.filePill}>
+            <span style={s.fileDot} />
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+            <button style={s.fileRemove} onClick={reset}>✕</button>
+          </div>
+        )}
+
+        {analyses.length > 0 && (
+          <div style={s.recentBox}>
+            <div style={s.recentTitle}>Son analizler</div>
+            {analyses.slice(0,3).map(a => (
+              <div key={a.id} style={s.recentRow}>
+                <span style={s.recentName}>{a.creative_name}</span>
+                <span style={{ ...s.recentScore, color: scoreColor(a.roi_scores?.attention_score) }}>
+                  {a.roi_scores?.attention_score ?? '—'}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      <div style={styles.right}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Kreatif Adı *</label>
-          <input style={styles.input} placeholder="örn. Yaz Kampanyası Hero Görseli"
-            value={creativeName} onChange={e => setCreativeName(e.target.value)} />
-        </div>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Müşteri</label>
-          <input style={styles.input} placeholder="örn. Uludağ İçecek"
-            value={clientName} onChange={e => setClientName(e.target.value)} />
-        </div>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Notlar</label>
-          <textarea style={{ ...styles.input, height: 72, resize: 'vertical' }}
-            placeholder="Hedef kitle, kampanya amacı..."
-            value={notes} onChange={e => setNotes(e.target.value)} />
+      <div style={s.right}>
+        <div style={s.form}>
+          <Field label="Kreatif adı *" value={name} onChange={setName} placeholder="örn. Yaz 2026 Hero Video" />
+          <Field label="Müşteri" value={client} onChange={setClient} placeholder="örn. Uludağ İçecek" />
+          <Field label="Notlar" value={notes} onChange={setNotes} placeholder="Hedef kitle, kampanya amacı..." multi />
+          <div style={s.noteHint}>Not: Notlar veritabanına kaydedilir, model inference'ı etkilemez.</div>
         </div>
 
-        <button
-          style={{
-            ...styles.analyzeBtn,
-            ...(!file || !creativeName || ['uploading','analyzing'].includes(status)
-              ? styles.analyzeBtnDisabled : {})
-          }}
-          onClick={analyze}
-          disabled={!file || !creativeName || ['uploading','analyzing'].includes(status)}
-        >
-          {status === 'uploading' && (
-            <span style={styles.analyzingText}><span style={styles.spinner} /> Yükleniyor...</span>
-          )}
-          {status === 'analyzing' && (
-            <span style={styles.analyzingText}>
-              <span style={styles.spinner} /> Analiz ediliyor... {fmtElapsed(elapsed)}
-            </span>
-          )}
-          {!['uploading','analyzing'].includes(status) && 'Analiz Et'}
+        <button style={{ ...s.btn, ...(busy || !file || !name ? s.btnDisabled : {}) }}
+          onClick={analyze} disabled={busy || !file || !name}>
+          {status === 'uploading' && <><Spinner /> Yükleniyor...</>}
+          {status === 'analyzing' && <><Spinner /> Analiz ediliyor &nbsp;<span style={s.timer}>{fmtTime(elapsed)}</span></>}
+          {!busy && 'Analiz Et →'}
         </button>
 
         {status === 'analyzing' && (
-          <div style={styles.infoBox}>
-            Model beyin yanıtını hesaplıyor. Bu işlem 8-12 dakika sürebilir,
-            sayfayı kapatma — arka planda devam eder.
+          <div style={s.progressBox}>
+            <div style={s.progressBar}>
+              <div style={{ ...s.progressFill, animation: 'progressAnim 12s ease-in-out infinite' }} />
+            </div>
+            <div style={s.progressText}>
+              Model beyin yanıtını hesaplıyor. Ortalama süre 8–12 dakika.
+            </div>
           </div>
         )}
 
-        {error && <div style={styles.errorBox}>{error}</div>}
+        {error && <div style={s.errorBox}>{error}</div>}
 
         {result && status === 'done' && (
-          <div style={styles.resultBox}>
-            <div style={styles.resultHeader}>
-              <span style={styles.resultTitle}>Analiz Sonucu</span>
-              <span style={styles.attentionScore}>
-                Dikkat: {result.roi_scores?.attention_score ?? '—'}
-              </span>
-            </div>
-            <div style={styles.roiGrid}>
-              {Object.entries(ROI_LABELS).map(([key, label]) => {
-                const val = result.roi_scores?.[key] ?? 0
-                return (
-                  <div key={key} style={styles.roiRow}>
-                    <div style={styles.roiLabel}>{label}</div>
-                    <div style={styles.roiBar}>
-                      <div style={{
-                        ...styles.roiFill,
-                        width: `${Math.min(100, val)}%`,
-                        background: ROI_COLORS[key],
-                      }} />
-                    </div>
-                    <div style={styles.roiVal}>{val}</div>
-                  </div>
-                )
-              })}
-            </div>
-            <div style={styles.resultMeta}>
-              İşlem süresi: {result.processing_seconds}s &nbsp;·&nbsp;
-              {result.n_timesteps} zaman adımı
-            </div>
-          </div>
+          <ResultCard result={result} creative={name} client={client} />
         )}
       </div>
     </div>
   )
 }
 
-const styles = {
-  wrap: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' },
+function Field({ label, value, onChange, placeholder, multi }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink2)', letterSpacing: '.05em', textTransform: 'uppercase' }}>{label}</label>
+      {multi
+        ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+            style={{ ...fStyle, height: 68, resize: 'vertical' }} />
+        : <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+            style={fStyle} />
+      }
+    </div>
+  )
+}
+
+function Spinner() {
+  return <span style={{
+    display: 'inline-block', width: 13, height: 13,
+    border: '1.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff',
+    borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: 8,
+  }} />
+}
+
+function scoreColor(score) {
+  if (!score) return 'var(--ink3)'
+  if (score >= 60) return 'var(--green)'
+  if (score >= 35) return 'var(--amber)'
+  return 'var(--red)'
+}
+
+const fStyle = {
+  background: '#fff', border: '1px solid var(--border)',
+  borderRadius: 'var(--r)', padding: '9px 12px',
+  color: 'var(--ink)', fontSize: 13, outline: 'none',
+}
+
+const s = {
+  wrap: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start' },
   left: { display: 'flex', flexDirection: 'column', gap: 12 },
   right: { display: 'flex', flexDirection: 'column', gap: 16 },
+
   dropzone: {
-    border: '2px dashed var(--border)', borderRadius: 16,
-    minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', transition: 'border-color .2s, background .2s',
-    background: 'var(--surface)', overflow: 'hidden',
+    border: '1.5px dashed var(--border2)', borderRadius: 8,
+    minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', background: '#fff', overflow: 'hidden', transition: 'border-color .15s',
   },
-  dropzoneActive: { borderColor: 'var(--accent)', background: 'var(--surface2)' },
-  dropPlaceholder: { textAlign: 'center', padding: 32 },
-  dropIcon: { fontSize: 32, marginBottom: 12, color: 'var(--muted)' },
-  dropText: { fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 15 },
-  dropSub: { color: 'var(--muted)', fontSize: 12, marginTop: 6 },
-  previewMedia: { width: '100%', height: 260, objectFit: 'cover', display: 'block' },
-  fileName: {
+  dropActive: { borderColor: 'var(--ink)', background: 'var(--bg)' },
+  dropFilled: { cursor: 'default', border: '1px solid var(--border)' },
+  dropInner: { textAlign: 'center', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 },
+  dropText: { fontSize: 14, fontWeight: 500, color: 'var(--ink2)' },
+  dropSub: { fontSize: 12, color: 'var(--ink3)' },
+  media: { width: '100%', height: 240, objectFit: 'cover', display: 'block' },
+
+  filePill: {
     display: 'flex', alignItems: 'center', gap: 8,
-    background: 'var(--surface2)', borderRadius: 8, padding: '8px 14px',
-    fontSize: 13, color: 'var(--muted)',
+    background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)',
+    padding: '7px 12px', fontSize: 12, color: 'var(--ink2)',
   },
-  fileNameDot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 },
-  clearBtn: { marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, padding: '2px 6px' },
-  formGroup: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontSize: 12, color: 'var(--muted)', fontWeight: 500, letterSpacing: '.03em' },
-  input: {
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '10px 14px', color: 'var(--text)', fontSize: 14, outline: 'none',
+  fileDot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 },
+  fileRemove: { background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, padding: '0 2px', marginLeft: 'auto' },
+
+  recentBox: {
+    background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14,
   },
-  analyzeBtn: {
-    background: 'var(--accent)', color: '#fff', border: 'none',
-    borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 600,
-    fontFamily: 'var(--font-head)', letterSpacing: '.02em', transition: 'opacity .15s',
+  recentTitle: { fontSize: 11, fontWeight: 500, color: 'var(--ink3)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 10 },
+  recentRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border)' },
+  recentName: { fontSize: 12, color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 },
+  recentScore: { fontSize: 13, fontWeight: 600, marginLeft: 12 },
+
+  form: { display: 'flex', flexDirection: 'column', gap: 14 },
+  noteHint: { fontSize: 11, color: 'var(--ink3)', fontStyle: 'italic', marginTop: -6 },
+
+  btn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--ink)', color: '#fff', border: 'none',
+    borderRadius: 'var(--r)', padding: '12px 20px', fontSize: 14, fontWeight: 500,
+    fontFamily: 'var(--body)', letterSpacing: '.01em', transition: 'opacity .15s',
   },
-  analyzeBtnDisabled: { opacity: .4 },
-  analyzingText: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  spinner: {
-    display: 'inline-block', width: 14, height: 14,
-    border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff',
-    borderRadius: '50%', animation: 'spin 1s linear infinite',
-  },
-  infoBox: {
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '10px 14px', color: 'var(--muted)', fontSize: 13, lineHeight: 1.6,
-  },
+  btnDisabled: { opacity: .35 },
+  timer: { fontVariantNumeric: 'tabular-nums', fontSize: 12, opacity: .7 },
+
+  progressBox: { display: 'flex', flexDirection: 'column', gap: 8 },
+  progressBar: { height: 2, background: 'var(--border)', borderRadius: 1, overflow: 'hidden' },
+  progressFill: { height: '100%', background: 'var(--ink)', width: '60%', borderRadius: 1 },
+  progressText: { fontSize: 12, color: 'var(--ink3)' },
+
   errorBox: {
-    background: '#2a1010', border: '1px solid #7f1d1d',
-    borderRadius: 8, padding: '10px 14px', color: '#fca5a5', fontSize: 13,
+    background: '#fef2f2', border: '1px solid #fecaca',
+    borderRadius: 'var(--r)', padding: '10px 14px', color: '#c0392b', fontSize: 13,
   },
-  resultBox: {
-    background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 20,
-  },
-  resultHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  resultTitle: { fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 15 },
-  attentionScore: { background: 'var(--accent)', color: '#fff', borderRadius: 20, fontSize: 12, padding: '3px 12px', fontWeight: 600 },
-  roiGrid: { display: 'flex', flexDirection: 'column', gap: 10 },
-  roiRow: { display: 'grid', gridTemplateColumns: '120px 1fr 36px', alignItems: 'center', gap: 10 },
-  roiLabel: { fontSize: 12, color: 'var(--muted)' },
-  roiBar: { height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' },
-  roiFill: { height: '100%', borderRadius: 3, transition: 'width 1s ease' },
-  roiVal: { fontSize: 12, color: 'var(--text)', textAlign: 'right' },
-  resultMeta: { fontSize: 11, color: 'var(--muted)', marginTop: 14, textAlign: 'right' },
 }
