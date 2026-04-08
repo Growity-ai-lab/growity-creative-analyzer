@@ -1,33 +1,49 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap');
+
 :root {
-  --bg:        #0a0a0f;
-  --surface:   #13131a;
-  --surface2:  #1c1c27;
-  --border:    #2a2a38;
-  --accent:    #6c63ff;
-  --accent2:   #ff6584;
-  --text:      #e8e8f0;
-  --muted:     #6b6b85;
-  --success:   #4ade80;
-  --warning:   #fbbf24;
-  --font-head: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --radius:    12px;
+  --bg:       #f5f4f0;
+  --surface:  #ffffff;
+  --border:   #e0ddd6;
+  --border2:  #c8c4ba;
+  --ink:      #1a1916;
+  --ink2:     #6b6860;
+  --ink3:     #a8a49d;
+  --accent:   #1a1916;
+  --red:      #c0392b;
+  --amber:    #d4780a;
+  --green:    #2d7a4f;
+  --blue:     #1a5fa8;
+  --head:     'Instrument Serif', Georgia, serif;
+  --body:     'Geist', system-ui, sans-serif;
+  --r:        6px;
 }
 
 body {
   background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 15px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
   line-height: 1.6;
   min-height: 100vh;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-button { cursor: pointer; font-family: var(--font-body); }
-input, textarea, select { font-family: var(--font-body); }
+button { cursor: pointer; font-family: var(--body); }
+input, textarea, select { font-family: var(--body); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
+}
