@@ -65,7 +65,7 @@ export default function UploadPanel({ onComplete, lastResult }) {
       const res = await fetch(`${MODAL_API}/analyze`, { 
   method: 'POST', 
   body: fd,
-  signal: AbortSignal.timeout(540000) // 9 dakika
+  signal: AbortSignal.timeout(840000) // 14 dakika
 })
       if (!res.ok) throw new Error(`API hatası: ${res.status}`)
       const data = await res.json()
