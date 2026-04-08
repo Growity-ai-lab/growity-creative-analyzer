@@ -2,82 +2,78 @@ import { useState, useEffect } from 'react'
 import UploadPanel from './components/UploadPanel.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import ComparePanel from './components/ComparePanel.jsx'
-import { fetchAnalyses } from './lib/supabase.js'
+
+const MODAL_API = import.meta.env.VITE_MODAL_API_URL
 
 const NAV = [
-  { id: 'upload',  label: 'Analiz Et' },
+  { id: 'upload',  label: 'Analiz' },
   { id: 'history', label: 'Geçmiş' },
   { id: 'compare', label: 'Karşılaştır' },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('upload')
+  const [tab, setTab]         = useState('upload')
   const [analyses, setAnalyses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [lastResult, setLastResult] = useState(null)
 
   const reload = async () => {
     try {
-      const data = await fetchAnalyses()
-      setAnalyses(data || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+      const res  = await fetch(`${MODAL_API}/analyses`)
+      const data = await res.json()
+      setAnalyses(Array.isArray(data) ? data : [])
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { reload() }, [])
 
-  const onAnalysisComplete = (result) => {
-    setLastResult(result)
-    reload()
-  }
-
   return (
-    <div style={styles.shell}>
-      {/* Sidebar */}
-      <aside style={styles.sidebar}>
-        <div style={styles.logo}>
-          <span style={styles.logoMark}>G</span>
+    <div style={s.shell}>
+      <aside style={s.sidebar}>
+        <div style={s.brand}>
+          <div style={s.brandMark}>G</div>
           <div>
-            <div style={styles.logoName}>Growity</div>
-            <div style={styles.logoSub}>Creative Analyzer</div>
+            <div style={s.brandName}>Growity</div>
+            <div style={s.brandSub}>Neural Analyzer</div>
           </div>
         </div>
 
-        <nav style={styles.nav}>
+        <div style={s.divider} />
+
+        <nav style={s.nav}>
           {NAV.map(n => (
             <button
               key={n.id}
-              style={{ ...styles.navBtn, ...(tab === n.id ? styles.navActive : {}) }}
+              style={{ ...s.navBtn, ...(tab === n.id ? s.navActive : {}) }}
               onClick={() => setTab(n.id)}
             >
-              {n.label}
+              <span>{n.label}</span>
               {n.id === 'history' && analyses.length > 0 && (
-                <span style={styles.badge}>{analyses.length}</span>
+                <span style={s.navCount}>{analyses.length}</span>
               )}
             </button>
           ))}
         </nav>
 
-        <div style={styles.sidebarFooter}>
-          <div style={styles.footerDot} />
-          <span style={{ color: 'var(--muted)', fontSize: 13 }}>TRIBE v2 powered</span>
+        <div style={s.sidebarFooter}>
+          <div style={s.footerRow}>
+            <span style={s.footerDot} />
+            <span style={s.footerLabel}>TRIBE v2</span>
+          </div>
+          <div style={s.footerSub}>Meta AI · CC BY-NC 4.0</div>
         </div>
       </aside>
 
-      {/* Main */}
-      <main style={styles.main}>
-        <div style={styles.topbar}>
-          <h1 style={styles.pageTitle}>{NAV.find(n => n.id === tab)?.label}</h1>
-          <div style={styles.topbarRight}>
-            <span style={styles.modelBadge}>Model: TRIBE v2</span>
+      <main style={s.main}>
+        <header style={s.header}>
+          <h1 style={s.headerTitle}>{NAV.find(n => n.id === tab)?.label}</h1>
+          <div style={s.headerRight}>
+            <span style={s.headerDate}>{new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>
-        </div>
+        </header>
 
-        <div style={styles.content}>
-          {tab === 'upload'  && <UploadPanel onComplete={onAnalysisComplete} lastResult={lastResult} />}
+        <div style={s.content}>
+          {tab === 'upload'  && <UploadPanel onComplete={reload} analyses={analyses} />}
           {tab === 'history' && <HistoryPanel analyses={analyses} loading={loading} onRefresh={reload} />}
           {tab === 'compare' && <ComparePanel analyses={analyses} />}
         </div>
@@ -86,73 +82,51 @@ export default function App() {
   )
 }
 
-const styles = {
-  shell: {
-    display: 'flex', minHeight: '100vh',
-  },
+const s = {
+  shell: { display: 'flex', minHeight: '100vh' },
   sidebar: {
-    width: 220, background: 'var(--surface)', borderRight: '1px solid var(--border)',
-    display: 'flex', flexDirection: 'column', padding: '28px 16px',
+    width: 200, background: 'var(--surface)', borderRight: '1px solid var(--border)',
+    display: 'flex', flexDirection: 'column', padding: '24px 16px',
     position: 'sticky', top: 0, height: '100vh',
   },
-  logo: {
-    display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40,
-  },
-  logoMark: {
-    width: 36, height: 36, background: 'var(--accent)', borderRadius: 8,
+  brand: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 },
+  brandMark: {
+    width: 32, height: 32, background: 'var(--ink)', borderRadius: 6,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: 18, color: '#fff',
+    fontFamily: 'var(--head)', fontSize: 18, color: '#fff', fontStyle: 'italic',
     flexShrink: 0,
   },
-  logoName: {
-    fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 15, color: 'var(--text)',
-  },
-  logoSub: {
-    fontSize: 11, color: 'var(--muted)', marginTop: 1,
-  },
-  nav: {
-    display: 'flex', flexDirection: 'column', gap: 4, flex: 1,
-  },
+  brandName: { fontFamily: 'var(--head)', fontSize: 15, color: 'var(--ink)', fontStyle: 'italic' },
+  brandSub: { fontSize: 11, color: 'var(--ink3)', letterSpacing: '.04em' },
+  divider: { height: '1px', background: 'var(--border)', marginBottom: 16 },
+  nav: { display: 'flex', flexDirection: 'column', gap: 2, flex: 1 },
   navBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 14px', borderRadius: 8, border: 'none',
-    background: 'transparent', color: 'var(--muted)', fontSize: 14,
-    fontWeight: 500, transition: 'all .15s', textAlign: 'left',
+    padding: '8px 10px', borderRadius: 'var(--r)', border: 'none',
+    background: 'transparent', color: 'var(--ink2)', fontSize: 13,
+    fontWeight: 400, transition: 'all .12s', textAlign: 'left',
   },
   navActive: {
-    background: 'var(--surface2)', color: 'var(--text)',
-    borderLeft: '3px solid var(--accent)', paddingLeft: 11,
+    background: 'var(--bg)', color: 'var(--ink)', fontWeight: 500,
+    border: '1px solid var(--border)',
   },
-  badge: {
-    background: 'var(--accent)', color: '#fff', borderRadius: 20,
-    fontSize: 11, padding: '1px 7px', fontWeight: 600,
+  navCount: {
+    fontSize: 11, background: 'var(--ink)', color: '#fff',
+    borderRadius: 20, padding: '1px 7px', fontWeight: 500,
   },
-  sidebarFooter: {
-    display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16,
-    borderTop: '1px solid var(--border)',
-  },
-  footerDot: {
-    width: 8, height: 8, borderRadius: '50%', background: 'var(--success)',
-    boxShadow: '0 0 6px #4ade80',
-  },
-  main: {
-    flex: 1, display: 'flex', flexDirection: 'column',
-  },
-  topbar: {
+  sidebarFooter: { paddingTop: 16, borderTop: '1px solid var(--border)' },
+  footerRow: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 },
+  footerDot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 },
+  footerLabel: { fontSize: 12, fontWeight: 500, color: 'var(--ink2)' },
+  footerSub: { fontSize: 11, color: 'var(--ink3)' },
+  main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
+  header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '20px 32px', borderBottom: '1px solid var(--border)',
     background: 'var(--surface)',
   },
-  pageTitle: {
-    fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 20,
-    color: 'var(--text)',
-  },
-  topbarRight: { display: 'flex', gap: 12, alignItems: 'center' },
-  modelBadge: {
-    fontSize: 12, color: 'var(--muted)', background: 'var(--surface2)',
-    border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px',
-  },
-  content: {
-    flex: 1, padding: '32px', overflowY: 'auto',
-  },
+  headerTitle: { fontFamily: 'var(--head)', fontSize: 22, fontStyle: 'italic', fontWeight: 400 },
+  headerRight: { display: 'flex', gap: 12 },
+  headerDate: { fontSize: 12, color: 'var(--ink3)' },
+  content: { flex: 1, padding: '32px', overflowY: 'auto' },
 }
