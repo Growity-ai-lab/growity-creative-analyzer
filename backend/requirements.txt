@@ -1,0 +1,7 @@
+modal>=0.73.0
+fastapi
+python-multipart
+psycopg2-binary
+numpy
+Pillow
+ffmpeg-python
