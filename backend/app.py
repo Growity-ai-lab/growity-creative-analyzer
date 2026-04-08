@@ -126,7 +126,7 @@ web_app.add_middleware(CORSMiddleware, allow_origins=["*"],
                        allow_methods=["*"], allow_headers=["*"])
 
 @app.function(
-    timeout=60,
+    timeout=300,
     volumes={"/uploads": upload_vol},
     secrets=[hf_secret, neon_secret],
     memory=512,
