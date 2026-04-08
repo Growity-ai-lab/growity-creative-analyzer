@@ -50,7 +50,7 @@ web_app.add_middleware(
 
 @app.function(
     gpu="A10G",           # A100 yerine A10G: daha ucuz, bu iş için yeterli
-    timeout=600,
+    timeout=900,
     volumes={"/cache": model_cache},
     secrets=[hf_secret, neon_secret],
     memory=32768,
