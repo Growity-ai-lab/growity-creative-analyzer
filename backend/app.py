@@ -142,9 +142,10 @@ async def analyze_start(
     creative_name: str = Form(...),
     client_name: str = Form(""),
     notes: str = Form(""),
+    format: str = Form(""),
 ):
     suffix = os.path.splitext(file.filename)[1].lower()
-    allowed = {".mp4", ".mov", ".avi", ".jpg", ".jpeg", ".png", ".mp3", ".wav"}
+    allowed = {".mp4", ".mov", ".avi", ".jpg", ".jpeg", ".png", ".mp3", ".wav", ".webp"}
     if suffix not in allowed:
         raise HTTPException(400, f"Desteklenmeyen format: {suffix}")
     job_id = str(uuid.uuid4())
@@ -158,9 +159,9 @@ async def analyze_start(
     cur = conn.cursor()
     cur.execute(
         """INSERT INTO analyses
-           (job_id, creative_name, client_name, notes, file_type, status)
-           VALUES (%s,%s,%s,%s,%s,'pending')""",
-        (job_id, creative_name, client_name, notes, suffix)
+           (job_id, creative_name, client_name, notes, file_type, status, creative_format)
+           VALUES (%s,%s,%s,%s,%s,'pending',%s)""",
+        (job_id, creative_name, client_name, notes, suffix, format)
     )
     conn.commit(); cur.close(); conn.close()
     await run_inference.spawn.aio(job_id, file_path, suffix)
