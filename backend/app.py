@@ -44,9 +44,10 @@ def image_to_video(image_path: str, duration: int = 4) -> str:
     (
         ffmpeg
         .input(image_path, loop=1, t=duration, framerate=25)
-        .output(out_path, vcodec="libx264", r=25, pix_fmt="yuv420p", vframes=duration*25)
+        .filter('scale', 'trunc(iw/2)*2', 'trunc(ih/2)*2')
+        .output(out_path, vcodec="libx264", r=25, pix_fmt="yuv420p")
         .overwrite_output()
-        .run(quiet=True)
+        .run(quiet=False, capture_stdout=True, capture_stderr=True)
     )
     return out_path
 
