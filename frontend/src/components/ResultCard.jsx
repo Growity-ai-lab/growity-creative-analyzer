@@ -51,7 +51,23 @@ const ROI_INSIGHTS = {
   },
 }
 
-const ROI_REGIONS = {
+const FORMAT_LABELS = {
+  feed_image:  'Feed Görseli',
+  story_reels: 'Story / Reels',
+  feed_video:  'Feed Video',
+  tvc:         'TVC',
+  bumper:      'Bumper / Pre-roll',
+  ooh:         'OOH / Dijital',
+}
+
+const FORMAT_PRIORITY = {
+  feed_image:  ['visual_cortex','ventral_visual','language'],
+  story_reels: ['dorsal_visual','visual_cortex','auditory'],
+  feed_video:  ['dorsal_visual','ventral_visual','language'],
+  tvc:         ['ventral_visual','auditory','prefrontal'],
+  bumper:      ['visual_cortex','language','prefrontal'],
+  ooh:         ['visual_cortex','language'],
+}
   visual_cortex:  { cx:200, cy:248, rx:52, ry:26 },
   ventral_visual: { cx:155, cy:224, rx:36, ry:20 },
   dorsal_visual:  { cx:200, cy:108, rx:44, ry:24 },
@@ -142,11 +158,13 @@ function BrainMap({ scores, active, onSelect }) {
   )
 }
 
-export default function ResultCard({ result, creative, client }) {
+export default function ResultCard({ result, creative, client, format }) {
   const scores = result.roi_scores || {}
   const att    = scores.attention_score ?? 0
   const al     = attLabel(att)
   const [active, setActive] = useState(null)
+
+  const priority = format ? FORMAT_PRIORITY[format] || [] : []
 
   const activeInsight = active
     ? ROI_INSIGHTS[active]?.[scoreLevel(scores[active] ?? 0)]
@@ -163,7 +181,11 @@ export default function ResultCard({ result, creative, client }) {
       <div style={s.cardHeader}>
         <div>
           <div style={s.cardTitle}>{creative}</div>
-          {client && <div style={s.cardSub}>{client}</div>}
+          <div style={s.cardMeta}>
+            {client && <span>{client}</span>}
+            {client && format && <span style={{ color:'var(--border2)' }}> · </span>}
+            {format && <span style={s.formatTag}>{FORMAT_LABELS[format]}</span>}
+          </div>
         </div>
         <div style={s.attBox}>
           <div style={{ ...s.attScore, color: al.color }}>{att.toFixed(1)}</div>
@@ -171,6 +193,22 @@ export default function ResultCard({ result, creative, client }) {
           <div style={s.attMeta}>dikkat skoru</div>
         </div>
       </div>
+
+      {priority.length > 0 && (
+        <div style={s.priorityBar}>
+          <span style={s.priorityLabel}>Bu format için öncelikli:</span>
+          {priority.map(k => (
+            <span key={k} style={{
+              ...s.priorityChip,
+              background: scoreColor(scores[k]) + '18',
+              color: scoreColor(scores[k]),
+              borderColor: scoreColor(scores[k]) + '40',
+            }}>
+              {ROI_LABELS[k]}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div style={s.section}>
         <div style={s.sectionTitle}>Kreatif performans analizi</div>
@@ -197,12 +235,16 @@ export default function ResultCard({ result, creative, client }) {
               const val = scores[key] ?? 0
               const pct = Math.min(100, (val / 70) * 100)
               const isActive = active === key
+              const isPriority = priority.includes(key)
               return (
                 <div key={key}
-                  style={{ ...s.barRow, ...(isActive ? s.barRowActive : {}) }}
+                  style={{ ...s.barRow, ...(isActive ? s.barRowActive : {}), ...(isPriority ? s.barRowPriority : {}) }}
                   onClick={() => setActive(active === key ? null : key)}
                 >
-                  <div style={s.barLabel}>{label}</div>
+                  <div style={{ ...s.barLabel, ...(isPriority ? { fontWeight:600, color:'var(--ink)' } : {}) }}>
+                    {label}
+                    {isPriority && <span style={s.priorityStar}>★</span>}
+                  </div>
                   <div style={s.barTrack}>
                     <div style={{ ...s.barFill, width: `${pct}%`, background: scoreColor(val) }} />
                   </div>
@@ -270,6 +312,20 @@ const s = {
   },
   cardTitle: { fontFamily: 'var(--head)', fontSize: 17, fontStyle: 'italic', marginBottom: 2 },
   cardSub: { fontSize: 12, color: 'var(--ink3)' },
+  cardMeta: { fontSize: 12, color: 'var(--ink3)', display:'flex', alignItems:'center', gap:4, marginTop:2 },
+  formatTag: { fontSize:11, fontWeight:600, color:'var(--ink2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'1px 6px' },
+  priorityBar: {
+    display:'flex', alignItems:'center', gap:8, flexWrap:'wrap',
+    padding:'10px 24px', background:'var(--bg)', borderBottom:'1px solid var(--border)',
+    fontSize:11,
+  },
+  priorityLabel: { color:'var(--ink3)', fontWeight:500, flexShrink:0 },
+  priorityChip: {
+    fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:4,
+    border:'1px solid', letterSpacing:'.02em',
+  },
+  barRowPriority: { background:'#fafaf8' },
+  priorityStar: { color:'#d4780a', fontSize:10, marginLeft:3 },
   attBox: { textAlign: 'right' },
   attScore: { fontFamily: 'var(--head)', fontSize: 28, fontStyle: 'italic', lineHeight: 1 },
   attLabel: { fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 2 },
