@@ -39,12 +39,12 @@ def get_model():
     return _model
 
 def image_to_video(image_path: str, duration: int = 4) -> str:
-    import ffmpeg
-    out_path = image_path + ".mp4"
+    import ffmpeg, os
+    out_path = os.path.splitext(image_path)[0] + "_converted.mp4"
     (
         ffmpeg
-        .input(image_path, loop=1, t=duration)
-        .output(out_path, vcodec="libx264", r=25, pix_fmt="yuv420p")
+        .input(image_path, loop=1, t=duration, framerate=25)
+        .output(out_path, vcodec="libx264", r=25, pix_fmt="yuv420p", vframes=duration*25)
         .overwrite_output()
         .run(quiet=True)
     )
@@ -151,7 +151,7 @@ async def analyze_start(
     content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
-    upload_vol.commit()
+    await upload_vol.commit.aio()
     import json as _json
     conn = db_connect()
     cur = conn.cursor()
@@ -162,7 +162,7 @@ async def analyze_start(
         (job_id, creative_name, client_name, notes, suffix)
     )
     conn.commit(); cur.close(); conn.close()
-    run_inference.spawn(job_id, file_path, suffix)
+    await run_inference.spawn.aio(job_id, file_path, suffix)
     return {"job_id": job_id, "status": "pending"}
 
 @web_app.get("/analyze/status/{job_id}")
