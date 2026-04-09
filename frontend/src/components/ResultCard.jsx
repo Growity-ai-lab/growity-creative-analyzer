@@ -68,6 +68,8 @@ const FORMAT_PRIORITY = {
   bumper:      ['visual_cortex','language','prefrontal'],
   ooh:         ['visual_cortex','language'],
 }
+
+const ROI_REGIONS = {
   visual_cortex:  { cx:200, cy:248, rx:52, ry:26 },
   ventral_visual: { cx:155, cy:224, rx:36, ry:20 },
   dorsal_visual:  { cx:200, cy:108, rx:44, ry:24 },
