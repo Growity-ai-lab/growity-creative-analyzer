@@ -1,44 +1,53 @@
-import { useRef, useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const ROI_LABELS = {
-  visual_cortex:  'Görsel Korteks',
-  ventral_visual: 'Ventral Görsel',
-  dorsal_visual:  'Dorsal Görsel',
-  prefrontal:     'Prefrontal',
-  auditory:       'İşitsel',
-  language:       'Dil',
+  visual_cortex:  'Görsel Etki',
+  ventral_visual: 'Duygusal Bağ',
+  dorsal_visual:  'Dinamizm',
+  prefrontal:     'İkna Gücü',
+  auditory:       'Ses & Ton',
+  language:       'Mesaj Netliği',
+}
+
+const ROI_DESCRIPTIONS = {
+  visual_cortex:  'Kreatifinizin görsel olarak ne kadar dikkat çektiğini ölçer.',
+  ventral_visual: 'İzleyicinin kreatifinizle duygusal bağ kurma gücünü ölçer.',
+  dorsal_visual:  'Kreatifinizin ne kadar dinamik ve enerjik hissettirdiğini ölçer.',
+  prefrontal:     'Mesajınızın ne kadar ikna edici ve harekete geçirici olduğunu ölçer.',
+  auditory:       'Ses, müzik ve anlatımın mesajı ne kadar güçlendirdiğini ölçer.',
+  language:       'Slogan, metin ve anlatının ne kadar net ve akılda kalıcı olduğunu ölçer.',
 }
 
 const ROI_INSIGHTS = {
-  visual_cortex:  {
-    high: 'Temel görsel işleme güçlü — renk, kontrast ve kompozisyon etkili çalışıyor.',
-    mid:  'Görsel korteks orta düzeyde aktive. Daha güçlü kontrast veya hareket bu skoru artırır.',
-    low:  'Görsel korteks zayıf. Dinamik kamera hareketleri veya yüksek kontrast kompozisyon gerekli.',
+  visual_cortex: {
+    high: 'Kreatifiniz görsel olarak güçlü bir ilk izlenim yaratıyor. Renk, kompozisyon ve görsel hiyerarşi bir arada iyi çalışıyor. Bu görsel dili diğer format ve boyutlara tutarlı şekilde taşıyın.',
+    mid:  'Kreatifiniz fark edilir ama rakip kreatiflerin arasında kaybolma riski var. Arka plan–ön plan kontrastını artırmak, ürünü veya mesajı daha belirgin konumlandırmak ilk bakışta yakalanma oranını yükseltir.',
+    low:  'Kreatifiniz şu haliyle yeterince ayırt edici değil. Cesur bir renk kararı, dramatik bir kompozisyon değişikliği veya beklenmedik bir görsel unsur eklemek gerekiyor. İzleyicinin feed\'inde durup bakmasını sağlayacak tek bir güçlü görsel moment belirleyin.',
   },
   ventral_visual: {
-    high: 'Nesne/yüz tanıma güçlü — izleyici beyninin dikkat sistemi devrede.',
-    mid:  'Ventral görsel orta. İnsan yüzü içeren sahneler bu skoru %30-50 artırır.',
-    low:  'Yüz/nesne tanıma düşük. Videoya talent eklemek en etkili çözüm.',
+    high: 'İzleyici kreatifinizle duygusal bağ kuruyor — bu marka hatırlanırlığı için kritik. İnsan unsuru veya empati yaratan hikaye yapısı güçlü çalışıyor. Bu duygusal çekirdeği diğer kreatif varyantlarda koruyun.',
+    mid:  'Duygusal bağ potansiyeli var ama tam açılmıyor. Talent kullanıyorsanız yüze daha uzun süre odaklanan çekimler ekleyin. Kullanmıyorsanız ürünü bir insan bağlamında — bir el, bir an, bir his — gösterin.',
+    low:  'Kreatifiniz izleyicide yeterli duygusal tepki uyandırmıyor. En hızlı çözüm: gerçek bir insan yüzü veya ürünü kullanan biri. Soyut ve yalnızca ürün odaklı kreatiflerde duygusal bağ kurmak çok daha zor, hafıza izi çok daha zayıf kalır.',
   },
-  dorsal_visual:  {
-    high: 'Uzamsal hareket ve dinamizm güçlü şekilde işleniyor.',
-    mid:  'Dorsal görsel orta. Pan, zoom veya tracking shot aktivasyonu artırır.',
-    low:  'Hareket algısı zayıf — video büyük olasılıkla statik sahnelerden oluşuyor.',
+  dorsal_visual: {
+    high: 'Kreatif dinamik ve enerjik hissettiriyor. Hareket ve ritim izleyiciyi aktif tutuyor — özellikle sosyal medyada bu avantaj. Bu enerjiyi kampanyanın diğer dokunma noktalarına taşıyın.',
+    mid:  'Ritim tutarlı ama ivme eksik. Kurgu temposunu biraz artırmak, kamera hareketine dinamizm katmak ya da ürünü harekette göstermek seyirciyi baştan sona taşır. Durağan sahneleri kısaltın.',
+    low:  'Kreatif durağan — izleyicinin gözü takip edecek bir hareket noktası bulamıyor. Statik kreatiflerde bile belirgin bir odak noktası, net bir görsel akış veya minimal animasyon bu sorunu çözer.',
   },
-  prefrontal:     {
-    high: 'Karar verme ve dikkat sistemi tam devrede.',
-    mid:  'Prefrontal orta düzeyde. Net call-to-action bu skoru yükseltir.',
-    low:  'Dikkat sistemi zayıf aktive. Merak uyandıran unsur veya sürpriz moment ekleyin.',
+  prefrontal: {
+    high: 'Mesajınız net ve harekete geçirici. İzleyici "neden bu markayı tercih etmeliyim?" sorusuna yanıt buluyor. Bu netliği tüm iletişimde koruyun — CTA\'yı seyreltmeyin.',
+    mid:  'Mesaj anlaşılıyor ama harekete geçirmiyor. CTA daha erken ve daha belirgin konumlandırılabilir. Faydayı somutlaştırın: rakam, garanti, karşılaştırma veya sosyal kanıt eklemek karar verme sürecini hızlandırır.',
+    low:  'İzleyici ne yapması gerektiğini bilmiyor. Tek ve net bir CTA, somut bir fayda ifadesi ve şimdi harekete geçmesi için bir neden eksik. Her üçünü aynı anda vermek zorunda değilsiniz — ama en az biri çok güçlü olmalı.',
   },
-  auditory:       {
-    high: 'Ses/müzik elementi beyin tarafından güçlü işleniyor.',
-    mid:  'İşitsel bölge orta. Voiceover veya müzik güçlendirilebilir.',
-    low:  'İşitsel korteks düşük — model sesi taramış ancak güçlü sinyal bulamamış. Voiceover veya impactful müzik başlangıcı kritik.',
+  auditory: {
+    high: 'Ses katmanı kreatifi tamamlıyor ve mesajı pekiştiriyor. Müzik seçimi veya voiceover tonu marka karakteriyle uyumlu çalışıyor. Sesi kapatıp yalnızca görsel izlendiğinde de mesaj iletiliyorsa mükemmel.',
+    mid:  'Ses var ama mesajı taşımıyor. Voiceover varsa daha özgün ve sıcak bir ton deneyin — okuma gibi değil, konuşma gibi. Müzik varsa daha belirgin bir giriş momenti mesajla senkronize edilebilir.',
+    low:  'Ses stratejisi eksik veya etkisiz. Sosyal medyada içerikler çoğunlukla sessiz başlıyor — ilk 3 saniyede yalnızca görsel ve metinle mesajınızı iletebiliyor musunuz? Bunu önce çözün, ardından ses katmanını güçlendirin.',
   },
-  language:       {
-    high: 'Dil işleme aktif — metin/slogan beyin tarafından güçlü algılanıyor.',
-    mid:  'Dil bölgesi orta. Daha net slogan veya anlatı bu skoru artırır.',
-    low:  'Dil bölgesi düşük — net mesaj veya voiceover eksik.',
+  language: {
+    high: 'Mesaj dili güçlü ve akılda kalıcı. Slogan, başlık veya anlatı izleyicinin zihninde yer açıyor. Bu dil tutarlılığını tüm kampanya materyallerinde koruyun — farklı formatlarda aynı çekirdek mesaj.',
+    mid:  'Mesaj var ama sıradan. Daha özgün bir dil, beklenmedik bir kelime seçimi veya izleyiciyle doğrudan konuşan bir ton sloganı hatırlanabilir kılar. "Kaliteli ürün" değil, "farkı ilk kullanışta hissedersiniz" gibi.',
+    low:  'Kreatifte güçlü bir dil unsuru yok. Şunu sorun: Bu slogan yalnızca sizin markanıza mı ait, yoksa rakip marka logosu koysan da geçer mi? Eğer ikincisiyse yeniden yazmanız gerekiyor.',
   },
 }
 
@@ -49,10 +58,6 @@ const ROI_REGIONS = {
   prefrontal:     { cx:200, cy:76,  rx:34, ry:18 },
   auditory:       { cx:118, cy:175, rx:32, ry:18 },
   language:       { cx:138, cy:140, rx:36, ry:20 },
-}
-
-const ROI_LABELS_R = {
-  visual_cortex:  { cx:275, cy:175, rx:32, ry:18 },
 }
 
 function scoreLevel(v) {
@@ -82,46 +87,37 @@ function attLabel(v) {
 
 function BrainMap({ scores, active, onSelect }) {
   const regions = Object.entries(ROI_REGIONS)
-
   return (
     <svg width="100%" viewBox="0 0 400 320" style={{ display: 'block' }}>
       <defs>
         <style>{`
           @keyframes bpulse { 0%,100%{opacity:.75} 50%{opacity:1} }
           @keyframes bripple { 0%{r:0;opacity:.5} 100%{r:24;opacity:0} }
-          .breg { cursor:pointer; transition:all .2s; }
+          .breg { cursor:pointer; }
           .breg ellipse { transition: all .2s; }
-          .breg:hover ellipse { opacity:1 !important; }
           .bpulse { animation: bpulse 2.5s ease-in-out infinite; }
           .bripple { animation: bripple 2.2s ease-out infinite; }
         `}</style>
       </defs>
-
       <ellipse cx="200" cy="168" rx="158" ry="132" fill="#f0ede8" stroke="#d0ccc5" strokeWidth="1"/>
       <path d="M200,48 C152,43 115,58 95,90 C75,118 70,148 76,172 C82,202 94,228 116,248 C138,268 168,278 200,278 C232,278 262,268 284,248 C306,228 318,202 324,172 C330,148 325,118 305,90 C285,58 248,43 200,48 Z"
         fill="#ede9e3" stroke="#c5c0b8" strokeWidth="1.5" fillOpacity=".55"/>
-
       <path d="M200,50 C200,50 196,68 196,85 C196,99 199,108 200,113 C201,108 204,99 204,85 C204,68 200,50 200,50 Z" fill="#ccc" stroke="none" opacity=".35"/>
       <path d="M128,78 C139,94 146,110 146,126" fill="none" stroke="#ccc" strokeWidth="1.2" opacity=".45"/>
       <path d="M272,78 C261,94 254,110 254,126" fill="none" stroke="#ccc" strokeWidth="1.2" opacity=".45"/>
       <path d="M88,162 C105,160 122,162 136,164" fill="none" stroke="#ccc" strokeWidth="1" opacity=".35"/>
       <path d="M312,162 C295,160 278,162 264,164" fill="none" stroke="#ccc" strokeWidth="1" opacity=".35"/>
-
       {regions.map(([key, reg]) => {
         const v = scores[key] ?? 0
         const isActive = active === key
         const col = scoreBg(v)
-        const alpha = scoreAlpha(v)
         const delay = { visual_cortex:0, ventral_visual:.4, dorsal_visual:.2, prefrontal:.6, auditory:.8, language:1 }[key] || 0
         return (
-          <g key={key} className="breg bpulse" style={{ animationDelay: `${delay}s` }}
-            onClick={() => onSelect(key)}>
-            {isActive && (
-              <circle cx={reg.cx} cy={reg.cy} r="0" fill="none" stroke={col} strokeWidth="1.5"
-                className="bripple" style={{ animationDelay: '.2s' }} />
-            )}
-            <ellipse cx={reg.cx} cy={reg.cy} rx={isActive ? reg.rx + 4 : reg.rx} ry={isActive ? reg.ry + 3 : reg.ry}
-              fill={col} fillOpacity={isActive ? 0.95 : alpha}
+          <g key={key} className="breg bpulse" style={{ animationDelay: `${delay}s` }} onClick={() => onSelect(key)}>
+            {isActive && <circle cx={reg.cx} cy={reg.cy} r="0" fill="none" stroke={col} strokeWidth="1.5" className="bripple" />}
+            <ellipse cx={reg.cx} cy={reg.cy}
+              rx={isActive ? reg.rx + 4 : reg.rx} ry={isActive ? reg.ry + 3 : reg.ry}
+              fill={col} fillOpacity={isActive ? 0.95 : scoreAlpha(v)}
               stroke={isActive ? col : 'none'} strokeWidth={isActive ? 2 : 0} />
             <text x={reg.cx} y={reg.cy + 4} textAnchor="middle"
               fontSize={isActive ? 10 : 9} fontFamily="system-ui,sans-serif"
@@ -133,17 +129,13 @@ function BrainMap({ scores, active, onSelect }) {
           </g>
         )
       })}
-
-      {/* Sağ hemisfer işitsel mirror */}
       <g className="breg bpulse" style={{ animationDelay: '.8s' }} onClick={() => onSelect('auditory')}>
         <ellipse cx="282" cy="175" rx="32" ry="18"
-          fill={scoreBg(scores.auditory ?? 0)}
-          fillOpacity={scoreAlpha(scores.auditory ?? 0)} />
+          fill={scoreBg(scores.auditory ?? 0)} fillOpacity={scoreAlpha(scores.auditory ?? 0)} />
         <text x="282" y="179" textAnchor="middle" fontSize="9" fontFamily="system-ui,sans-serif"
-          fontWeight="500" fill="#444" style={{ pointerEvents:'none' }}>İşitsel</text>
+          fontWeight="500" fill="#444" style={{ pointerEvents:'none' }}>Ses</text>
       </g>
-
-      <text x="200" y="308" textAnchor="middle" fontSize="10" fontFamily="system-ui,sans-serif" fill="#aaa">
+      <text x="200" y="308" textAnchor="middle" fontSize="10" fontFamily="system-ui,sans-serif" fill="#bbb">
         Bölgeye tıkla → detay
       </text>
     </svg>
@@ -160,6 +152,12 @@ export default function ResultCard({ result, creative, client }) {
     ? ROI_INSIGHTS[active]?.[scoreLevel(scores[active] ?? 0)]
     : null
 
+  const generalText = att >= 60
+    ? 'Kreatif güçlü performans gösteriyor. Yayına alınmaya hazır — farklı hedef kitlelerde veya formatlarda A/B testi yaparak en iyi varyantı belirleyin ve ölçeklendirin.'
+    : att >= 35
+    ? 'Kreatif çalışıyor ama potansiyelinin altında. En düşük skoru olan tek bir unsuru değiştirin, tekrar test edin. Tüm kreatiifi yeniden yazmak yerine cerrahi müdahaleler daha hızlı sonuç verir.'
+    : 'Kreatif şu haliyle yeterli aktivasyon yaratmıyor. Önce hedef kitleyle hızlı bir kavram testi yapılmasını öneririz. Duygusal bağ, net mesaj ve ses — bu üç unsur öncelikli müdahale alanı. Bütçeyi bu haliyle ölçeklendirmekten kaçının.'
+
   return (
     <div style={s.card}>
       <div style={s.cardHeader}>
@@ -175,16 +173,21 @@ export default function ResultCard({ result, creative, client }) {
       </div>
 
       <div style={s.section}>
-        <div style={s.sectionTitle}>Korteks aktivasyon haritası</div>
+        <div style={s.sectionTitle}>Kreatif performans analizi</div>
         <div style={s.vizRow}>
           <div style={s.brainCol}>
-            <BrainMap scores={scores} active={active} onSelect={setActive} />
+            <BrainMap scores={scores} active={active} onSelect={k => setActive(active === k ? null : k)} />
             {active && (
-              <div style={s.insightPopup}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: scoreColor(scores[active]), letterSpacing: '.03em', marginBottom: 4 }}>
-                  {ROI_LABELS[active]} — {(scores[active] ?? 0).toFixed(1)}
+              <div style={s.popup}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: scoreColor(scores[active]), letterSpacing: '.03em', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {ROI_LABELS[active]}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.6 }}>{activeInsight}</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>
+                  {ROI_DESCRIPTIONS[active]}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.65 }}>
+                  {activeInsight}
+                </div>
               </div>
             )}
           </div>
@@ -197,7 +200,7 @@ export default function ResultCard({ result, creative, client }) {
               return (
                 <div key={key}
                   style={{ ...s.barRow, ...(isActive ? s.barRowActive : {}) }}
-                  onClick={() => setActive(isActive ? null : key)}
+                  onClick={() => setActive(active === key ? null : key)}
                 >
                   <div style={s.barLabel}>{label}</div>
                   <div style={s.barTrack}>
@@ -208,16 +211,16 @@ export default function ResultCard({ result, creative, client }) {
               )
             })}
             <div style={s.legend}>
-              <span style={{ color: '#2d7a4f' }}>● Güçlü (&gt;55)</span>
-              <span style={{ color: '#d4780a' }}>● Orta (42–55)</span>
-              <span style={{ color: '#c0392b' }}>● Zayıf (&lt;42)</span>
+              <span style={{ color:'#2d7a4f' }}>● Güçlü (&gt;55)</span>
+              <span style={{ color:'#d4780a' }}>● Orta (42–55)</span>
+              <span style={{ color:'#c0392b' }}>● Zayıf (&lt;42)</span>
             </div>
           </div>
         </div>
       </div>
 
       <div style={s.section}>
-        <div style={s.sectionTitle}>Genel değerlendirme</div>
+        <div style={s.sectionTitle}>Öncelikli aksiyon alanları</div>
         <div style={s.insights}>
           {Object.entries(scores)
             .filter(([k]) => k !== 'attention_score')
@@ -225,7 +228,7 @@ export default function ResultCard({ result, creative, client }) {
             .slice(0, 1)
             .map(([key]) => (
               <div key={key} style={{ ...s.insightRow, borderLeftColor: '#2d7a4f' }}>
-                <span style={s.insightTag}>Güçlü</span>
+                <span style={{ ...s.insightTag, color: '#2d7a4f' }}>Güçlü</span>
                 <span style={s.insightText}>{ROI_INSIGHTS[key]?.high}</span>
               </div>
             ))
@@ -236,28 +239,24 @@ export default function ResultCard({ result, creative, client }) {
             .slice(0, 2)
             .map(([key]) => (
               <div key={key} style={{ ...s.insightRow, borderLeftColor: '#c0392b' }}>
-                <span style={s.insightTag}>Geliştir</span>
+                <span style={{ ...s.insightTag, color: '#c0392b' }}>Geliştir</span>
                 <span style={s.insightText}>{ROI_INSIGHTS[key]?.low}</span>
               </div>
             ))
           }
           <div style={{ ...s.insightRow, borderLeftColor: '#e0ddd6' }}>
-            <span style={s.insightTag}>Genel</span>
-            <span style={s.insightText}>
-              {att >= 60 ? 'Güçlü beyin aktivasyonu. Mevcut yapıyı koruyarak A/B testi önerilir.'
-               : att >= 35 ? 'Orta düzey aktivasyon. Zayıf bölgeler güçlendirilirse dikkat skoru önemli ölçüde artabilir.'
-               : 'Düşük aktivasyon. İnsan yüzü, hareket ve net ses anlatımı eklemek kapsamlı iyileşme sağlar.'}
-            </span>
+            <span style={{ ...s.insightTag, color: 'var(--ink2)' }}>Sonuç</span>
+            <span style={s.insightText}>{generalText}</span>
           </div>
         </div>
       </div>
 
       <div style={s.meta}>
-        <span>{result.n_timesteps} zaman adımı</span>
+        <span>{result.n_timesteps} zaman adımı analiz edildi</span>
         <span>·</span>
         <span>{result.processing_seconds?.toFixed(0)}s işlem süresi</span>
         <span>·</span>
-        <span>TRIBE v2 · fsaverage5 · ~20k vertex</span>
+        <span>TRIBE v2 by Meta AI</span>
       </div>
     </div>
   )
@@ -275,17 +274,14 @@ const s = {
   attScore: { fontFamily: 'var(--head)', fontSize: 28, fontStyle: 'italic', lineHeight: 1 },
   attLabel: { fontSize: 11, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginTop: 2 },
   attMeta: { fontSize: 11, color: 'var(--ink3)', marginTop: 1 },
-
   section: { padding: '20px 24px', borderBottom: '1px solid var(--border)' },
   sectionTitle: { fontSize: 11, fontWeight: 500, color: 'var(--ink3)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 14 },
-
   vizRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' },
   brainCol: { display: 'flex', flexDirection: 'column', gap: 10 },
-  insightPopup: {
+  popup: {
     background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6,
-    padding: '10px 14px', fontSize: 12, lineHeight: 1.6,
+    padding: '12px 14px',
   },
-
   barCol: { display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 8 },
   barRow: {
     display: 'grid', gridTemplateColumns: '100px 1fr 36px', gap: 10, alignItems: 'center',
@@ -297,15 +293,13 @@ const s = {
   barFill: { height: '100%', borderRadius: 2, transition: 'width .8s ease' },
   barVal: { fontSize: 12, fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
   legend: { display: 'flex', gap: 10, fontSize: 10, color: 'var(--ink3)', marginTop: 8, flexWrap: 'wrap' },
-
   insights: { display: 'flex', flexDirection: 'column', gap: 8 },
   insightRow: {
     display: 'flex', gap: 12, alignItems: 'flex-start',
     padding: '10px 14px', background: 'var(--bg)', borderRadius: 4,
-    borderLeft: '3px solid', borderLeftStyle: 'solid',
+    borderLeft: '3px solid',
   },
-  insightTag: { fontSize: 11, fontWeight: 600, color: 'var(--ink2)', letterSpacing: '.04em', textTransform: 'uppercase', minWidth: 52, paddingTop: 1, flexShrink: 0 },
-  insightText: { fontSize: 12, color: 'var(--ink)', lineHeight: 1.6 },
-
+  insightTag: { fontSize: 11, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', minWidth: 52, paddingTop: 1, flexShrink: 0 },
+  insightText: { fontSize: 12, color: 'var(--ink)', lineHeight: 1.65 },
   meta: { padding: '10px 24px', display: 'flex', gap: 8, fontSize: 11, color: 'var(--ink3)', background: 'var(--bg)', flexWrap: 'wrap' },
 }
